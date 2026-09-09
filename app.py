@@ -67,6 +67,12 @@ st.markdown("""
         border-right: 1px solid #334155;
     }
     
+    /* Headers (00 Bookmarks 테마 일치) */
+    h1, .main h1, [data-testid="stHeadingWithActionElements"] h1 {
+        color: #8AB4F8 !important;
+        font-weight: 800 !important;
+    }
+
     section[data-testid="stSidebar"] h1, 
     section[data-testid="stSidebar"] h2, 
     section[data-testid="stSidebar"] h3 {
@@ -336,7 +342,7 @@ if only_dividend_paying:
 # 타이틀 색상은 00 Bookmarks 폴더 앱과 완벽히 동일한 #8AB4F8, 서브타이틀 없음
 st.markdown(
     "<h1 style='color: #8AB4F8 !important; font-weight: 800; font-size: 1.95rem; margin-top: 0; margin-bottom: 0.3rem; letter-spacing: -0.5px;'>"
-    "한국증시 우선주 목록 및 투자 지표 비교"
+    "<span style='color: #8AB4F8 !important;'>한국증시 우선주 목록 및 투자 지표 비교</span>"
     "</h1>",
     unsafe_allow_html=True
 )
