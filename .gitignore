@@ -13,6 +13,7 @@ ENV/
 # Data Cache
 cache/
 *.csv
+!pref_stocks_master.csv
 
 # Streamlit
 .streamlit/
