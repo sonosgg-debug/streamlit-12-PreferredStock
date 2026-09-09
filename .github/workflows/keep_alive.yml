@@ -1,0 +1,31 @@
+name: Keep Streamlit Alive
+
+on:
+  schedule:
+    # 3일마다 자정(UTC 00:00, 한국 시간 오전 09:00)에 자동 실행
+    # Streamlit Community Cloud의 비활성 수면 모드(Inactivity Sleep) 방지
+    - cron: '0 0 */3 * *'
+  # GitHub Actions 탭에서 수동으로 즉시 실행할 수 있도록 설정
+  workflow_dispatch:
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit empty change and push
+        run: |
+          git commit --allow-empty -m "chore: keep-alive ping for Streamlit [skip ci]"
+          git push origin main
