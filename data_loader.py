@@ -105,23 +105,39 @@ MASTER_FILE = os.path.join(CURRENT_DIR, "pref_stocks_master.csv")
 
 
 def get_latest_business_day():
-    """가장 최근 영업일 YYYYMMDD 반환"""
-    # 1) pykrx 시도
+    """
+    가장 최근 거래 완료된 영업일 YYYYMMDD 반환.
+    한국 장 마감 시간(15:30) 및 일별 정산(16:00)을 고려:
+    - 평일 16:00 이전에는 아직 당일 종가가 확정되지 않았으므로 '전일(또는 직전 평일)'을 기준일로 설정
+    - 평일 16:00 이후에는 '당일'을 최신 영업일로 설정
+    - 주말(토, 일)에는 '직전 금요일'을 최신 영업일로 설정
+    """
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    now_kst = now_utc + datetime.timedelta(hours=9)
+
+    # 평일 16:00 이전이거나 주말이면 어제(또는 직전 평일)부터 탐색
+    start_offset = 0 if (now_kst.weekday() < 5 and now_kst.hour >= 16) else 1
+
+    kst_bday = None
+    for i in range(start_offset, start_offset + 10):
+        d = now_kst - datetime.timedelta(days=i)
+        if d.weekday() < 5:
+            kst_bday = d.strftime('%Y%m%d')
+            break
+
+    if not kst_bday:
+        kst_bday = (now_kst - datetime.timedelta(days=1)).strftime('%Y%m%d')
+
+    # pykrx 가용 시 실제 거래일 검증
     if HAS_PYKRX and stock:
         try:
-            return stock.get_nearest_business_day_in_a_week()
+            krx_day = stock.get_nearest_business_day_in_a_week(date=kst_bday)
+            if krx_day and len(krx_day) == 8 and krx_day <= kst_bday:
+                return krx_day
         except Exception:
             pass
 
-    # 2) 한국 표준시(UTC+9) 기준 최근 평일 계산
-    now_utc = datetime.datetime.now(datetime.timezone.utc)
-    now_kst = now_utc + datetime.timedelta(hours=9)
-    for i in range(0, 10):
-        d = now_kst - datetime.timedelta(days=i)
-        if d.weekday() < 5:
-            # 주말 제외한 최근 평일 반환
-            return d.strftime('%Y%m%d')
-    return now_kst.strftime('%Y%m%d')
+    return kst_bday
 
 
 def is_preferred_stock(ticker, name, all_names):
@@ -276,14 +292,22 @@ def load_market_data(force_refresh=False):
     return pd.DataFrame(), date
 
 
-def load_price_history(pref_ticker, com_ticker, months=12):
+def load_price_history(pref_ticker, com_ticker, months=12, latest_date=None, latest_pref_price=None, latest_com_price=None):
     """
     특정 우선주와 보통주의 과거 N개월간 일별 종가 및 일별 괴리율 시계열 로드
     1차: pykrx 시도 -> 2차: yfinance(글로벌 클라우드 100% 호환) 폴백
+    3차: 테이블의 최신 영업일 종가(latest_date)와 동기화하여 시계열 데이터 누락/지연 원천 방지
     """
     end_date = get_latest_business_day()
+    if latest_date:
+        clean_date = str(latest_date).replace('-', '').strip()
+        if len(clean_date) == 8:
+            end_date = max(end_date, clean_date)
+
     start_dt = datetime.datetime.strptime(end_date, "%Y%m%d") - datetime.timedelta(days=int(months * 30.5))
     start_date = start_dt.strftime("%Y%m%d")
+
+    df = pd.DataFrame()
 
     # 1. pykrx 시도
     if HAS_PYKRX and stock:
@@ -296,45 +320,74 @@ def load_price_history(pref_ticker, com_ticker, months=12):
                     "우선주가": df_pref['종가'],
                     "보통주가": df_com['종가']
                 }).dropna()
-
-                if not df.empty and len(df) >= 5:
-                    return _process_history_df(df)
         except Exception as e:
             print(f"pykrx 시계열 수집 실패 (yfinance 폴백 가동): {e}")
 
     # 2. yfinance 폴백 시도 (Streamlit Cloud 해외 IP에서도 100% 동작)
-    if HAS_YF and yf:
+    if df.empty or len(df) < 5:
+        if HAS_YF and yf:
+            try:
+                # 코스닥/코스피 티커 서픽스 자동 매칭 (.KS 또는 .KQ)
+                for suff in ['.KS', '.KQ']:
+                    try:
+                        p_sym = f"{pref_ticker}{suff}"
+                        c_sym = f"{com_ticker}{suff}"
+                        yf_pref = yf.download(p_sym, start=start_dt.strftime("%Y-%m-%d"), progress=False)
+                        yf_com = yf.download(c_sym, start=start_dt.strftime("%Y-%m-%d"), progress=False)
+
+                        if not yf_pref.empty and not yf_com.empty:
+                            c_close = yf_com['Close'].squeeze()
+                            p_close = yf_pref['Close'].squeeze()
+
+                            df_cand = pd.DataFrame({
+                                "우선주가": p_close,
+                                "보통주가": c_close
+                            }).dropna()
+
+                            if not df_cand.empty and len(df_cand) >= 5:
+                                df = df_cand
+                                break
+                    except Exception:
+                        continue
+            except Exception as e:
+                print(f"yfinance 시계열 수집 실패: {e}")
+
+    if df.empty:
+        return pd.DataFrame()
+
+    # 3. 타임존 제거 (Asia/Seoul 등의 타임존이 있으면 Plotly에서 UTC 변환 시 날짜가 1일 전으로 표시되는 현상 원천 방지)
+    if hasattr(df.index, 'tz') and df.index.tz is not None:
+        df.index = df.index.tz_localize(None)
+    df.index = pd.to_datetime(df.index)
+
+    # 4. 테이블의 최신 검증 종가 데이터와 시계열 동기화 (야후 파이낸스 한국 주식 반영 지연 방지)
+    if latest_date and latest_pref_price is not None and latest_com_price is not None:
         try:
-            # 코스닥/코스피 티커 서픽스 자동 매칭 (.KS 또는 .KQ)
-            for suff in ['.KS', '.KQ']:
-                try:
-                    p_sym = f"{pref_ticker}{suff}"
-                    c_sym = f"{com_ticker}{suff}"
-                    yf_pref = yf.download(p_sym, start=start_dt.strftime("%Y-%m-%d"), progress=False)
-                    yf_com = yf.download(c_sym, start=start_dt.strftime("%Y-%m-%d"), progress=False)
+            p_val = float(latest_pref_price)
+            c_val = float(latest_com_price)
+            if p_val > 0 and c_val > 0:
+                t_dt = pd.to_datetime(str(latest_date).replace('-', '').strip())
+                max_dt = df.index.max()
+                if t_dt > max_dt:
+                    # 야후 파이낸스 등에 최신일 종가가 아직 미반영된 경우, 테이블의 검증된 최신 종가를 추가
+                    new_row = pd.DataFrame({"우선주가": [p_val], "보통주가": [c_val]}, index=[t_dt])
+                    df = pd.concat([df, new_row])
+                elif t_dt == max_dt:
+                    # 당일 종가를 테이블의 확정 종가로 보정
+                    df.loc[max_dt, "우선주가"] = p_val
+                    df.loc[max_dt, "보통주가"] = c_val
+        except Exception as ex_sync:
+            print(f"최신 종가 동기화 예외 무시: {ex_sync}")
 
-                    if not yf_pref.empty and not yf_com.empty:
-                        # Close 컬럼 추출 (MultiIndex 대응)
-                        c_close = yf_com['Close'].squeeze()
-                        p_close = yf_pref['Close'].squeeze()
-
-                        df = pd.DataFrame({
-                            "우선주가": p_close,
-                            "보통주가": c_close
-                        }).dropna()
-
-                        if not df.empty and len(df) >= 5:
-                            return _process_history_df(df)
-                except Exception:
-                    continue
-        except Exception as e:
-            print(f"yfinance 시계열 수집 실패: {e}")
-
-    return pd.DataFrame()
+    return _process_history_df(df)
 
 
 def _process_history_df(df):
     """시계열 데이터프레임의 괴리율, 이동평균 및 정규화 지표 계산"""
+    if hasattr(df.index, 'tz') and df.index.tz is not None:
+        df.index = df.index.tz_localize(None)
+    df.index = pd.to_datetime(df.index)
+
     df['괴리율'] = ((df['보통주가'] - df['우선주가']) / df['보통주가']) * 100
     df['괴리율_MA20'] = df['괴리율'].rolling(window=20, min_periods=1).mean()
     df['괴리율_MA60'] = df['괴리율'].rolling(window=60, min_periods=1).mean()
@@ -345,5 +398,4 @@ def _process_history_df(df):
     df['우선주_정규화'] = (df['우선주가'] / first_pref) * 100 if first_pref > 0 else 100
     df['보통주_정규화'] = (df['보통주가'] / first_com) * 100 if first_com > 0 else 100
 
-    df.index = pd.to_datetime(df.index)
     return df

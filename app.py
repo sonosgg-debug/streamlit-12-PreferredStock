@@ -194,6 +194,18 @@ def get_cached_market_data(force_refresh=False):
     return data_loader.load_market_data(force_refresh=force_refresh)
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_cached_price_history(pref_ticker, com_ticker, months=12, latest_date=None, latest_pref_price=None, latest_com_price=None, force_refresh=False):
+    return data_loader.load_price_history(
+        pref_ticker,
+        com_ticker,
+        months=months,
+        latest_date=latest_date,
+        latest_pref_price=latest_pref_price,
+        latest_com_price=latest_com_price
+    )
+
+
 # 4. 엑셀 파일 생성 헬퍼 함수
 def create_excel_download(df_export):
     """
@@ -599,7 +611,15 @@ with st.container(border=True):
 
 # 시계열 데이터 로드
 with st.spinner("시계열 주가 및 괴리율 데이터를 로드하는 중..."):
-    df_hist = data_loader.load_price_history(chosen_pref_ticker, chosen_com_ticker, months=chosen_months)
+    df_hist = get_cached_price_history(
+        chosen_pref_ticker,
+        chosen_com_ticker,
+        months=chosen_months,
+        latest_date=target_date,
+        latest_pref_price=target_row["우선주가"],
+        latest_com_price=target_row["보통주가"],
+        force_refresh=force_refresh
+    )
 
 if df_hist.empty:
     st.warning("선택한 종목의 시계열 주가 데이터를 불러올 수 없습니다.")
@@ -617,14 +637,16 @@ else:
                 y=df_hist['보통주_정규화'],
                 mode='lines',
                 name=f"{chosen_com_name} (보통주)",
-                line=dict(color='#60a5fa', width=2)
+                line=dict(color='#60a5fa', width=2),
+                hovertemplate="%{x|%Y-%m-%d}<br>보통주 상대수익률: %{y:.2f}<extra></extra>"
             ))
             fig1.add_trace(go.Scatter(
                 x=df_hist.index,
                 y=df_hist['우선주_정규화'],
                 mode='lines',
                 name=f"{chosen_pref_name} (우선주)",
-                line=dict(color='#f472b6', width=2.5)
+                line=dict(color='#f472b6', width=2.5),
+                hovertemplate="%{x|%Y-%m-%d}<br>우선주 상대수익률: %{y:.2f}<extra></extra>"
             ))
             y_title = "상대 수익률 (시작일=100)"
         else:
@@ -633,14 +655,16 @@ else:
                 y=df_hist['보통주가'],
                 mode='lines',
                 name=f"{chosen_com_name} (보통주)",
-                line=dict(color='#60a5fa', width=2)
+                line=dict(color='#60a5fa', width=2),
+                hovertemplate="%{x|%Y-%m-%d}<br>보통주: %{y:,.0f}원<extra></extra>"
             ))
             fig1.add_trace(go.Scatter(
                 x=df_hist.index,
                 y=df_hist['우선주가'],
                 mode='lines',
                 name=f"{chosen_pref_name} (우선주)",
-                line=dict(color='#f472b6', width=2.5)
+                line=dict(color='#f472b6', width=2.5),
+                hovertemplate="%{x|%Y-%m-%d}<br>우선주: %{y:,.0f}원<extra></extra>"
             ))
             y_title = "주가 (원)"
 
@@ -656,7 +680,7 @@ else:
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             margin=dict(l=40, r=20, t=50, b=40),
             yaxis=dict(title=y_title, gridcolor="#334155"),
-            xaxis=dict(gridcolor="#334155")
+            xaxis=dict(gridcolor="#334155", tickformat="%Y-%m-%d")
         )
         st.plotly_chart(fig1, use_container_width=True)
 
@@ -672,7 +696,8 @@ else:
             name="일별 괴리율(%)",
             line=dict(color='#34d399', width=1.5),
             fill='tozeroy',
-            fillcolor='rgba(52, 211, 153, 0.08)'
+            fillcolor='rgba(52, 211, 153, 0.08)',
+            hovertemplate="%{x|%Y-%m-%d}<br>일별 괴리율: %{y:.2f}%<extra></extra>"
         ))
 
         # 20일 이동평균선
@@ -681,7 +706,8 @@ else:
             y=df_hist['괴리율_MA20'],
             mode='lines',
             name="20일 이동평균",
-            line=dict(color='#38bdf8', width=2, dash='dot')
+            line=dict(color='#38bdf8', width=2, dash='dot'),
+            hovertemplate="%{x|%Y-%m-%d}<br>20일 이평: %{y:.2f}%<extra></extra>"
         ))
 
         # 기간 평균선
@@ -707,7 +733,7 @@ else:
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             margin=dict(l=40, r=20, t=50, b=40),
             yaxis=dict(title="괴리율 (%)", gridcolor="#334155"),
-            xaxis=dict(gridcolor="#334155")
+            xaxis=dict(gridcolor="#334155", tickformat="%Y-%m-%d")
         )
         st.plotly_chart(fig2, use_container_width=True)
 
