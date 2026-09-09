@@ -262,6 +262,12 @@ def create_excel_download(df_export):
 
         worksheet.row_dimensions[1].height = 28
 
+        # 헤더에 오름차순, 내림차순 정렬 및 필터 토글 드롭다운 활성화
+        worksheet.auto_filter.ref = worksheet.dimensions
+
+        # 헤더 행(1행) 틀 고정 (스크롤 시에도 헤더가 항상 화면에 고정)
+        worksheet.freeze_panes = "A2"
+
     return output.getvalue()
 
 
