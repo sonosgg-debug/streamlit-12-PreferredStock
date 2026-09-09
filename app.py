@@ -87,6 +87,34 @@ st.markdown("""
         border-radius: 6px !important;
     }
 
+    /* Metric Value & Label font size adjustments (시각적 피로도 경감을 위한 폰트 축소) */
+    [data-testid="stMetricValue"] {
+        font-size: 1.35rem !important;
+        font-weight: 700 !important;
+        color: #f8fafc !important;
+    }
+    [data-testid="stMetricValue"] > div {
+        font-size: 1.35rem !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 0.82rem !important;
+        color: #94a3b8 !important;
+        font-weight: 500 !important;
+    }
+
+    /* 6열 상세 요약 메트릭 영역 폰트 추가 축소 (단정하고 편안한 크기: 삼성전자, 삼성전자우, 26.72% 등) */
+    div[data-testid="stHorizontalBlock"]:has(div[data-testid="column"]:nth-child(6)) [data-testid="stMetricValue"],
+    div[data-testid="stHorizontalBlock"]:has(div[data-testid="column"]:nth-child(6)) [data-testid="stMetricValue"] > div,
+    .detail-metrics [data-testid="stMetricValue"],
+    .detail-metrics [data-testid="stMetricValue"] > div {
+        font-size: 1.15rem !important;
+        font-weight: 700 !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(div[data-testid="column"]:nth-child(6)) [data-testid="stMetricLabel"],
+    .detail-metrics [data-testid="stMetricLabel"] {
+        font-size: 0.78rem !important;
+    }
+
     /* Metric Card Styling */
     .metric-card {
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
