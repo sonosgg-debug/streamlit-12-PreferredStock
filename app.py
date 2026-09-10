@@ -638,7 +638,7 @@ else:
                 mode='lines',
                 name=f"{chosen_com_name} (보통주)",
                 line=dict(color='#60a5fa', width=2),
-                hovertemplate="%{x|%Y-%m-%d}<br>보통주 상대수익률: %{y:.2f}<extra></extra>"
+                hovertemplate="보통주 상대수익률: %{y:.2f}<extra></extra>"
             ))
             fig1.add_trace(go.Scatter(
                 x=df_hist.index,
@@ -646,7 +646,7 @@ else:
                 mode='lines',
                 name=f"{chosen_pref_name} (우선주)",
                 line=dict(color='#f472b6', width=2.5),
-                hovertemplate="%{x|%Y-%m-%d}<br>우선주 상대수익률: %{y:.2f}<extra></extra>"
+                hovertemplate="우선주 상대수익률: %{y:.2f}<extra></extra>"
             ))
             y_title = "상대 수익률 (시작일=100)"
         else:
@@ -656,7 +656,7 @@ else:
                 mode='lines',
                 name=f"{chosen_com_name} (보통주)",
                 line=dict(color='#60a5fa', width=2),
-                hovertemplate="%{x|%Y-%m-%d}<br>보통주: %{y:,.0f}원<extra></extra>"
+                hovertemplate="보통주: %{y:,.0f}원<extra></extra>"
             ))
             fig1.add_trace(go.Scatter(
                 x=df_hist.index,
@@ -664,7 +664,7 @@ else:
                 mode='lines',
                 name=f"{chosen_pref_name} (우선주)",
                 line=dict(color='#f472b6', width=2.5),
-                hovertemplate="%{x|%Y-%m-%d}<br>우선주: %{y:,.0f}원<extra></extra>"
+                hovertemplate="우선주: %{y:,.0f}원<extra></extra>"
             ))
             y_title = "주가 (원)"
 
@@ -680,7 +680,7 @@ else:
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             margin=dict(l=40, r=20, t=50, b=40),
             yaxis=dict(title=y_title, gridcolor="#334155"),
-            xaxis=dict(gridcolor="#334155", tickformat="%Y-%m-%d")
+            xaxis=dict(gridcolor="#334155", tickformat="%Y-%m-%d", hoverformat="%Y-%m-%d")
         )
         st.plotly_chart(fig1, use_container_width=True)
 
@@ -697,7 +697,7 @@ else:
             line=dict(color='#34d399', width=1.5),
             fill='tozeroy',
             fillcolor='rgba(52, 211, 153, 0.08)',
-            hovertemplate="%{x|%Y-%m-%d}<br>일별 괴리율: %{y:.2f}%<extra></extra>"
+            hovertemplate="일별 괴리율: %{y:.2f}%<extra></extra>"
         ))
 
         # 20일 이동평균선
@@ -707,7 +707,7 @@ else:
             mode='lines',
             name="20일 이동평균",
             line=dict(color='#38bdf8', width=2, dash='dot'),
-            hovertemplate="%{x|%Y-%m-%d}<br>20일 이평: %{y:.2f}%<extra></extra>"
+            hovertemplate="20일 이평: %{y:.2f}%<extra></extra>"
         ))
 
         # 기간 평균선
@@ -733,7 +733,7 @@ else:
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             margin=dict(l=40, r=20, t=50, b=40),
             yaxis=dict(title="괴리율 (%)", gridcolor="#334155"),
-            xaxis=dict(gridcolor="#334155", tickformat="%Y-%m-%d")
+            xaxis=dict(gridcolor="#334155", tickformat="%Y-%m-%d", hoverformat="%Y-%m-%d")
         )
         st.plotly_chart(fig2, use_container_width=True)
 
