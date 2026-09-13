@@ -475,7 +475,7 @@ with col_dl:
     df_export = df_filtered[export_cols].copy()
     
     excel_bytes = create_excel_download(df_export)
-    file_name = f"한국증시_우선주_투자지표_비교_{target_date}.xlsx"
+    file_name = f"K_Market_우선주_투자지표_비교_{target_date}.xlsx"
     
     st.download_button(
         label="📥 엑셀 다운로드 (.xlsx)",
