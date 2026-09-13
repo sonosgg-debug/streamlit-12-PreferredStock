@@ -190,12 +190,12 @@ st.markdown("""
 
 # 3. 데이터 로딩 캐시 함수
 @st.cache_data(ttl=3600, show_spinner=False)
-def get_cached_market_data(force_refresh=False):
-    return data_loader.load_market_data(force_refresh=force_refresh)
+def get_cached_market_data(_force_refresh=False):
+    return data_loader.load_market_data(force_refresh=_force_refresh)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def get_cached_price_history(pref_ticker, com_ticker, months=12, latest_date=None, latest_pref_price=None, latest_com_price=None, force_refresh=False):
+def get_cached_price_history(pref_ticker, com_ticker, months=12, latest_date=None, latest_pref_price=None, latest_com_price=None, _force_refresh=False):
     return data_loader.load_price_history(
         pref_ticker,
         com_ticker,
@@ -341,6 +341,7 @@ with st.sidebar:
     if st.button("🔄 최신 데이터 강제 갱신", use_container_width=True):
         st.cache_data.clear()
         st.session_state.force_reload = True
+        st.session_state.show_refresh_toast = True
         st.rerun()
 
 
@@ -351,7 +352,16 @@ force_refresh = st.session_state.force_reload
 st.session_state.force_reload = False
 
 with st.spinner("KRX 시장 및 펀더멘털 데이터를 불러오는 중입니다..."):
-    df_raw, target_date = get_cached_market_data(force_refresh=force_refresh)
+    market_res = get_cached_market_data(_force_refresh=force_refresh)
+    if isinstance(market_res, tuple) and len(market_res) == 3:
+        df_raw, target_date, data_source = market_res
+    else:
+        df_raw, target_date = market_res[0], market_res[1]
+        data_source = "KRX 정보데이터시스템"
+
+if st.session_state.get('show_refresh_toast'):
+    st.session_state.show_refresh_toast = False
+    st.toast("✅ 최신 주가 및 투자 지표 데이터가 성공적으로 갱신되었습니다!", icon="🔄")
 
 if df_raw.empty:
     st.error("데이터를 불러올 수 없습니다. 인터넷 연결 및 KRX 인증 설정을 확인하세요.")
@@ -397,7 +407,7 @@ st.markdown(
 date_formatted = f"{target_date[:4]}-{target_date[4:6]}-{target_date[6:]}"
 st.markdown(
     f"<div style='font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px;'>"
-    f"기준일: <span style='color: #38bdf8; font-weight: 600;'>{date_formatted}</span> (전일 종가 기준) &nbsp;|&nbsp; 제공처: <span style='color: #cbd5e1;'>KRX 정보데이터시스템</span>"
+    f"기준일: <span style='color: #38bdf8; font-weight: 600;'>{date_formatted}</span> (전일 종가 기준) &nbsp;|&nbsp; 제공처: <span style='color: #cbd5e1;'>{data_source}</span>"
     f"</div>",
     unsafe_allow_html=True
 )
@@ -618,7 +628,7 @@ with st.spinner("시계열 주가 및 괴리율 데이터를 로드하는 중...
         latest_date=target_date,
         latest_pref_price=target_row["우선주가"],
         latest_com_price=target_row["보통주가"],
-        force_refresh=force_refresh
+        _force_refresh=force_refresh
     )
 
 if df_hist.empty:

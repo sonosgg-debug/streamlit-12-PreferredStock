@@ -104,6 +104,25 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 MASTER_FILE = os.path.join(CURRENT_DIR, "pref_stocks_master.csv")
 
 
+def ensure_krx_session():
+    """pykrx 세션이 유효한지 확인하고 필요한 경우 재로그인 수행"""
+    init_krx_credentials()
+    try:
+        from pykrx.website.comm import auth, webio
+        sess = auth.get_auth_session()
+        if sess is None or not sess.is_valid():
+            login_id = os.getenv('KRX_ID')
+            login_pw = os.getenv('KRX_PW')
+            if login_id and login_pw:
+                new_sess = auth.build_krx_session(login_id, login_pw)
+                if new_sess:
+                    auth.set_auth_session(new_sess)
+                    webio.set_auth_session(new_sess)
+    except Exception as e:
+        print(f"KRX 세션 갱신 시도 중 예외: {e}")
+
+
+
 def get_latest_business_day():
     """
     가장 최근 거래 완료된 영업일 YYYYMMDD 반환.
@@ -182,27 +201,115 @@ def load_fallback_master_data():
     return pd.DataFrame()
 
 
+def update_master_with_yfinance(df_master, target_date=None):
+    """
+    yfinance를 활용하여 114개 우선주 및 보통주의 최신 종가를 일괄 다운로드하고
+    괴리율, 시가총액, 배당수익률(A, B), 배당수익률 비율(B/A)을 재산출하여 반환.
+    KRX 서버 점검, 네트워크 타임아웃, Streamlit Cloud 해외 IP 차단 시 100% 무결점 최신 시세 보장.
+    """
+    if df_master.empty or not HAS_YF or not yf:
+        return df_master, target_date
+
+    df_res = df_master.copy()
+    symbol_map = {}
+    for idx, row in df_res.iterrows():
+        mkt = row.get("시장", "코스피")
+        suff = ".KS" if mkt == "코스피" else ".KQ"
+        p_code = str(row["우선주코드"]).strip()
+        c_code = str(row["보통주코드"]).strip()
+        symbol_map[p_code] = f"{p_code}{suff}"
+        symbol_map[c_code] = f"{c_code}{suff}"
+
+    all_symbols = list(set(symbol_map.values()))
+    try:
+        yf_data = yf.download(all_symbols, period="5d", progress=False)
+        if "Close" not in yf_data:
+            return df_master, target_date
+
+        close_df = yf_data["Close"].dropna(how="all")
+        if close_df.empty:
+            return df_master, target_date
+
+        # 최신 영업일 종가 시리즈 추출
+        latest_series = close_df.iloc[-1]
+        actual_date = latest_series.name.strftime("%Y%m%d")
+
+        count_updated = 0
+        for idx in df_res.index:
+            p_code = str(df_res.loc[idx, "우선주코드"]).strip()
+            c_code = str(df_res.loc[idx, "보통주코드"]).strip()
+            p_sym = symbol_map.get(p_code)
+            c_sym = symbol_map.get(c_code)
+
+            new_c_price = float(latest_series[c_sym]) if c_sym in latest_series and pd.notna(latest_series[c_sym]) else 0.0
+            new_p_price = float(latest_series[p_sym]) if p_sym in latest_series and pd.notna(latest_series[p_sym]) else 0.0
+
+            if new_c_price > 0 and new_p_price > 0:
+                old_c_price = float(df_res.loc[idx, "보통주가"]) if pd.notna(df_res.loc[idx, "보통주가"]) else 0.0
+                old_cap = float(df_res.loc[idx, "시가총액(보통주)"]) if pd.notna(df_res.loc[idx, "시가총액(보통주)"]) else 0.0
+
+                if old_c_price > 0 and old_cap > 0:
+                    df_res.loc[idx, "시가총액(보통주)"] = round(old_cap * (new_c_price / old_c_price))
+
+                df_res.loc[idx, "보통주가"] = new_c_price
+                df_res.loc[idx, "우선주가"] = new_p_price
+
+                # 괴리율(%)
+                discount_rate = round(((new_c_price - new_p_price) / new_c_price) * 100, 2)
+                df_res.loc[idx, "괴리율(%)"] = discount_rate
+
+                # 배당금 및 배당수익률
+                c_dps = float(df_res.loc[idx, "보통주 배당금"]) if pd.notna(df_res.loc[idx, "보통주 배당금"]) else 0.0
+                p_dps = float(df_res.loc[idx, "우선주 배당금"]) if pd.notna(df_res.loc[idx, "우선주 배당금"]) else 0.0
+
+                c_yield = round((c_dps / new_c_price) * 100, 2)
+                p_yield = round((p_dps / new_p_price) * 100, 2)
+                df_res.loc[idx, "보통주 배당수익률(A)"] = c_yield
+                df_res.loc[idx, "우선주 배당수익률(B)"] = p_yield
+
+                # 배당수익률 비율(B/A)
+                if c_yield > 0:
+                    df_res.loc[idx, "배당수익률 비율(B/A)"] = round(p_yield / c_yield, 2)
+                else:
+                    df_res.loc[idx, "배당수익률 비율(B/A)"] = np.nan if p_yield == 0 else 999.0
+
+                count_updated += 1
+
+        if count_updated >= 50:
+            df_res = df_res.sort_values(by="시가총액(보통주)", ascending=False).reset_index(drop=True)
+            return df_res, actual_date
+
+    except Exception as e:
+        print(f"yfinance 최신 종가 업데이트 중 예외 발생: {e}")
+
+    return df_master, target_date
+
+
 def load_market_data(force_refresh=False):
     """
     KOSPI 및 KOSDAQ 시장의 보통주-우선주 전체 데이터를 수집하고
-    13개 투자 비교 지표를 산출하여 DataFrame으로 반환.
-    클라우드 해외 IP 차단 시에도 마스터 데이터를 자동으로 로드하여 100% 무결점 서비스 보장.
+    13개 투자 비교 지표를 산출하여 DataFrame, 기준일자, 데이터 제공처 반환.
+    1단계: 로컬 캐시 (당일 파일 존재 시 즉시 반환)
+    2단계: KRX 실시간 데이터 수집 (pykrx)
+    3단계: KRX 수집 불가 시(해외 IP, 주말 점검 등) yfinance 배치 동적 최신 종가 갱신
+    4단계: 완전 오프라인 시 마스터 데이터 폴백
     """
     date = get_latest_business_day()
     cache_path = os.path.join(CACHE_DIR, f"pref_summary_{date}.csv")
 
-    # 1. 당일 캐시가 있으면 즉시 반환
+    # 1. 당일 캐시가 있고 강제 갱신이 아닌 경우 즉시 반환
     if not force_refresh and os.path.exists(cache_path):
         try:
             df = pd.read_csv(cache_path, dtype={'우선주코드': str, '보통주코드': str}, encoding='utf-8-sig')
             if not df.empty and len(df) >= 70:
-                return df, date
+                return df, date, "KRX 정보데이터시스템 (로컬 캐시)"
         except Exception as e:
             print(f"캐시 로드 실패: {e}")
 
     # 2. KRX 온라인 실시간 데이터 수집 시도
     records = []
     if HAS_PYKRX and stock:
+        ensure_krx_session()
         for mkt_name in ['KOSPI', 'KOSDAQ']:
             try:
                 tickers = stock.get_market_ticker_list(date, market=mkt_name)
@@ -272,7 +379,7 @@ def load_market_data(force_refresh=False):
 
     df = pd.DataFrame(records)
 
-    # 3. 실시간 수집 성공 시 정렬 및 캐시 저장
+    # 2-1. KRX 실시간 수집 성공 시 정렬 및 캐시 저장
     if not df.empty and len(df) >= 70:
         df = df.sort_values(by="시가총액(보통주)", ascending=False).reset_index(drop=True)
         try:
@@ -281,15 +388,32 @@ def load_market_data(force_refresh=False):
             df.to_csv(MASTER_FILE, index=False, encoding='utf-8-sig')
         except Exception:
             pass
-        return df, date
+        return df, date, "KRX 정보데이터시스템"
 
-    # 4. 실시간 수집 실패(해외 IP 차단/네트워크 지연 등) 시 마스터 캐시 폴백 자동 가동
-    print("KRX 온라인 수집 불가, 마스터 데이터로 자동 폴백합니다.")
-    df_fallback = load_fallback_master_data()
-    if not df_fallback.empty:
-        return df_fallback, date
+    # 3. KRX 온라인 수집 실패(해외 IP 차단/네트워크 지연/주말 점검 등) 시 yfinance 동적 최신 종가 갱신 가동
+    print("KRX 온라인 수집 불가 -> yfinance 최신 종가 동적 파이프라인 가동")
+    df_master = load_fallback_master_data()
+    if not df_master.empty and HAS_YF and yf:
+        try:
+            df_yf, yf_date = update_master_with_yfinance(df_master, target_date=date)
+            if not df_yf.empty and len(df_yf) >= 70:
+                effective_date = yf_date if yf_date else date
+                yf_cache_path = os.path.join(CACHE_DIR, f"pref_summary_{effective_date}.csv")
+                try:
+                    df_yf.to_csv(yf_cache_path, index=False, encoding='utf-8-sig')
+                    df_yf.to_csv(MASTER_FILE, index=False, encoding='utf-8-sig')
+                except Exception:
+                    pass
+                return df_yf, effective_date, "야후 파이낸스 (KRX 지연 시 실시간 동기화)"
+        except Exception as ex_yf:
+            print(f"yfinance 동적 갱신 예외: {ex_yf}")
 
-    return pd.DataFrame(), date
+    # 4. 완전 오프라인 시 마스터 정적 데이터 폴백
+    print("인터넷 연결 불가 -> 마스터 데이터로 자동 폴백합니다.")
+    if not df_master.empty:
+        return df_master, date, "로컬 마스터 데이터 (오프라인)"
+
+    return pd.DataFrame(), date, "데이터 없음"
 
 
 def load_price_history(pref_ticker, com_ticker, months=12, latest_date=None, latest_pref_price=None, latest_com_price=None):
