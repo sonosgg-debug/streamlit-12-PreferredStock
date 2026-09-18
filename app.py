@@ -475,7 +475,7 @@ if only_dividend_paying:
 # ==========================================
 # 타이틀 색상은 00 Bookmarks 폴더 앱과 완벽히 동일한 #8AB4F8, 서브타이틀 없음
 st.markdown(
-    "<h1 style='color: #8AB4F8 !important; font-weight: 800; font-size: 1.95rem; margin-top: 0; margin-bottom: 0.3rem; letter-spacing: -0.5px;'>"
+    "<h1 style='text-align: center; color: #8AB4F8 !important; font-weight: 800; font-size: 1.9rem; margin-top: 0; margin-bottom: 0.3rem; letter-spacing: -0.5px;'>"
     "<span style='color: #8AB4F8 !important;'>한국증시 우선주 목록 및 투자 지표 비교</span>"
     "</h1>",
     unsafe_allow_html=True
@@ -484,7 +484,7 @@ st.markdown(
 # 기준일자 메타 정보 표시
 date_formatted = f"{target_date[:4]}-{target_date[4:6]}-{target_date[6:]}"
 st.markdown(
-    f"<div style='font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px;'>"
+    f"<div style='text-align: center; font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px;'>"
     f"기준일: <span style='color: #38bdf8; font-weight: 600;'>{date_formatted}</span> (전일 종가 기준) &nbsp;|&nbsp; 제공처: <span style='color: #cbd5e1;'>{data_source}</span>"
     f"</div>",
     unsafe_allow_html=True
