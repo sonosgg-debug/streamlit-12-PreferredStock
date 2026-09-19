@@ -56,7 +56,7 @@ st.markdown("""
     /* Main Content Area */
     .main .block-container,
     [data-testid="stMainBlockContainer"] {
-        padding-top: 2.5rem !important;
+        padding-top: 2.0rem !important;
         padding-bottom: 3.5rem !important;
         max-width: 98% !important;
     }
@@ -71,6 +71,7 @@ st.markdown("""
     h1, .main h1, [data-testid="stHeadingWithActionElements"] h1 {
         color: #8AB4F8 !important;
         font-weight: 800 !important;
+        font-size: 2.0rem !important;
     }
 
     section[data-testid="stSidebar"] h1, 
@@ -402,7 +403,7 @@ with st.sidebar:
     st.markdown("<hr style='border: 0; height: 1px; background-color: #334155; margin: 18px 0;'>", unsafe_allow_html=True)
 
     # 4) 캐시 갱신 버튼
-    if st.button("🔄 최신 데이터 강제 갱신", use_container_width=True):
+    if st.button("🔄 Update", use_container_width=True):
         st.cache_data.clear()
         st.session_state.force_reload = True
         st.session_state.show_refresh_toast = True
@@ -461,7 +462,7 @@ if only_dividend_paying:
 # ==========================================
 # 타이틀 색상은 00 Bookmarks 폴더 앱과 완벽히 동일한 #8AB4F8, 서브타이틀 없음
 st.markdown(
-    "<h1 style='text-align: center; color: #8AB4F8 !important; font-weight: 800; font-size: 1.9rem; margin-top: 0; margin-bottom: 0.3rem; letter-spacing: -0.5px;'>"
+    "<h1 style='text-align: center; color: #8AB4F8 !important; font-weight: 800; font-size: 2.0rem; margin-top: 0; margin-bottom: 0.3rem; letter-spacing: -0.5px;'>"
     "<span style='color: #8AB4F8 !important;'>한국증시 우선주 목록 및 투자 지표 비교</span>"
     "</h1>",
     unsafe_allow_html=True
@@ -899,3 +900,12 @@ else:
             # 3. 투자 전략 제언
             st.markdown("**3. 투자 전략 제언:**")
             st.caption("우선주는 의결권이 없는 대신 **높은 배당수익률**과 **괴리율 축소 시 자본차익**을 동시에 노릴 수 있습니다. 시가총액이 크고 배당성향이 안정적인 대형 우선주 중심으로 접근하는 것이 유동성 리스크를 줄이는 데 유리합니다.")
+
+# 하단 투자 유의사항 공통 푸터
+st.markdown("<hr style='border: 0; height: 1px; background-color: #334155; margin: 30px 0 10px 0;'>", unsafe_allow_html=True)
+st.markdown(
+    "<div style='text-align: center; color: #64748b; font-size: 0.8rem; margin-top: 8px; margin-bottom: 24px; line-height: 1.6;'>"
+    "⚠️ 본 서비스에서 제공하는 모든 정보는 투자 참고용이며, 투자의 최종 결정과 책임은 투자자 본인에게 있습니다."
+    "</div>",
+    unsafe_allow_html=True
+)
