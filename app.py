@@ -172,6 +172,32 @@ st.markdown("""
         box-shadow: 0 0 10px rgba(37, 99, 235, 0.4) !important;
     }
 
+    /* Sidebar button horizontal 2-column layout styling (다른 앱과 통일) */
+    section[data-testid="stSidebar"] div.stButton > button {
+        border-radius: 6px !important;
+        font-weight: 700 !important;
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+        min-height: 38px !important;
+        height: 38px !important;
+        white-space: nowrap !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    section[data-testid="stSidebar"] div.stButton > button p {
+        white-space: nowrap !important;
+        overflow: visible !important;
+        font-size: 0.85rem !important;
+        font-weight: 700 !important;
+        line-height: 1 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: inline-block !important;
+    }
+
     /* =========================================================
        사이드바 접기(<<) 및 펼치기(>>) 버튼 항상 표시 및 시인성/대비 강화
        ========================================================= */
@@ -391,14 +417,16 @@ with st.sidebar:
 
     only_dividend_paying = st.checkbox("배당 지급 종목만 보기", value=False, help="우선주 배당금이 0원 초과인 종목만 필터링합니다.")
 
-    # 2) 조회 버튼 (모든 검색 및 필터 조건을 확인하고 실행)
-    btn_search = st.button("🔍 조회", type="primary", use_container_width=True)
+    st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
 
-    st.markdown("<hr style='border: 0; height: 1px; background-color: #334155; margin: 18px 0;'>", unsafe_allow_html=True)
+    # Update & 조회 버튼 (다른 앱과의 레이아웃 통일: 왼쪽 Update, 오른쪽 조회)
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        btn_update = st.button("🔄 Update", use_container_width=True, help="최신 데이터를 다시 수집하고 캐시를 갱신합니다.")
+    with col_btn2:
+        btn_search = st.button("🔍 조회", type="primary", use_container_width=True, help="선택한 조건으로 대시보드를 조회합니다.")
 
-    # 3) 캐시 갱신 버튼
-    st.markdown("<div style='font-size: 0.95rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;'>🔄 데이터 갱신</div>", unsafe_allow_html=True)
-    if st.button("🔄 Update", use_container_width=True, help="KRX 및 네이버 금융의 최신 시세를 강제 재수집합니다."):
+    if btn_update:
         st.cache_data.clear()
         st.session_state.force_reload = True
         st.session_state.show_refresh_toast = True
