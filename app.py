@@ -371,17 +371,8 @@ with st.sidebar:
         horizontal=True,
         help="조회할 주식 시장을 선택합니다."
     )
-    
-    # 2) 조회 버튼
-    btn_search = st.button("🔍 조회", type="primary", use_container_width=True)
-    if btn_search:
-        st.session_state.market_selection = market_choice
-        st.rerun()
 
-    st.markdown("<hr style='border: 0; height: 1px; background-color: #334155; margin: 18px 0;'>", unsafe_allow_html=True)
-    
-    # 3) 스마트 필터
-    st.markdown("<div style='font-size: 0.95rem; font-weight: 700; color: #cbd5e1; margin-bottom: 8px;'>🎯 스마트 필터</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size: 0.95rem; font-weight: 700; color: #cbd5e1; margin-top: 14px; margin-bottom: 8px;'>🎯 스마트 필터</div>", unsafe_allow_html=True)
     
     search_keyword = st.text_input("종목명 검색", placeholder="예: 삼성, 현대, LG...", help="보통주 또는 우선주 이름으로 검색합니다.")
     
@@ -400,10 +391,14 @@ with st.sidebar:
 
     only_dividend_paying = st.checkbox("배당 지급 종목만 보기", value=False, help="우선주 배당금이 0원 초과인 종목만 필터링합니다.")
 
+    # 2) 조회 버튼 (모든 검색 및 필터 조건을 확인하고 실행)
+    btn_search = st.button("🔍 조회", type="primary", use_container_width=True)
+
     st.markdown("<hr style='border: 0; height: 1px; background-color: #334155; margin: 18px 0;'>", unsafe_allow_html=True)
 
-    # 4) 캐시 갱신 버튼
-    if st.button("🔄 Update", use_container_width=True):
+    # 3) 캐시 갱신 버튼
+    st.markdown("<div style='font-size: 0.95rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;'>🔄 데이터 갱신</div>", unsafe_allow_html=True)
+    if st.button("🔄 Update", use_container_width=True, help="KRX 및 네이버 금융의 최신 시세를 강제 재수집합니다."):
         st.cache_data.clear()
         st.session_state.force_reload = True
         st.session_state.show_refresh_toast = True
@@ -455,6 +450,13 @@ df_filtered = df_filtered[df_filtered["괴리율(%)"] >= min_discount]
 
 if only_dividend_paying:
     df_filtered = df_filtered[df_filtered["우선주 배당금"] > 0]
+
+# 조회 버튼 클릭 시 즉각적인 시각적 피드백 토스트 알림 제공
+if btn_search:
+    if not df_filtered.empty:
+        st.toast(f"🔍 조회가 완료되었습니다! (총 {len(df_filtered):,}개 종목)", icon="🔎")
+    else:
+        st.toast("⚠️ 조건에 일치하는 종목이 없습니다. 검색 필터를 확인해 주세요.", icon="⚠️")
 
 
 # ==========================================
