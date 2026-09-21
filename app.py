@@ -281,12 +281,12 @@ st.markdown("""
 
 # 3. 데이터 로딩 캐시 함수
 @st.cache_data(ttl=3600, show_spinner=False)
-def get_cached_market_data(_force_refresh=False):
-    return data_loader.load_market_data(force_refresh=_force_refresh)
+def get_cached_market_data(target_date_key: str, force_refresh: bool = False):
+    return data_loader.load_market_data(force_refresh=force_refresh)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def get_cached_price_history(pref_ticker, com_ticker, months=12, latest_date=None, latest_pref_price=None, latest_com_price=None, _force_refresh=False):
+def get_cached_price_history(pref_ticker, com_ticker, months=12, latest_date=None, latest_pref_price=None, latest_com_price=None, force_refresh: bool = False):
     return data_loader.load_price_history(
         pref_ticker,
         com_ticker,
@@ -439,8 +439,10 @@ with st.sidebar:
 force_refresh = st.session_state.force_reload
 st.session_state.force_reload = False
 
+target_business_date = data_loader.get_latest_business_day()
+
 with st.spinner("KRX 시장 및 펀더멘털 데이터를 불러오는 중입니다..."):
-    market_res = get_cached_market_data(_force_refresh=force_refresh)
+    market_res = get_cached_market_data(target_business_date, force_refresh=force_refresh)
     if isinstance(market_res, tuple) and len(market_res) == 3:
         df_raw, target_date, data_source = market_res
     else:
@@ -499,10 +501,14 @@ st.markdown(
 )
 
 # 기준일자 메타 정보 표시
-date_formatted = f"{target_date[:4]}-{target_date[4:6]}-{target_date[6:]}"
+date_formatted = f"{target_date[:4]}-{target_date[4:6]}-{target_date[6:]}" if (len(target_date) == 8 and target_date.isdigit()) else target_date
+is_outdated = (target_date < target_business_date)
+outdated_badge = f" &nbsp;|&nbsp; <span style='color: #fbbf24; font-weight: 600;'>⚠️ 이전 마스터 기준 (🔄 새로고침 권장)</span>" if is_outdated else ""
+
 st.markdown(
     f"<div style='text-align: center; font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px;'>"
     f"기준일: <span style='color: #38bdf8; font-weight: 600;'>{date_formatted}</span> (전일 종가 기준) &nbsp;|&nbsp; 제공처: <span style='color: #cbd5e1;'>{data_source}</span>"
+    f"{outdated_badge}"
     f"</div>",
     unsafe_allow_html=True
 )
@@ -723,7 +729,7 @@ with st.spinner("시계열 주가 및 괴리율 데이터를 로드하는 중...
         latest_date=target_date,
         latest_pref_price=target_row["우선주가"],
         latest_com_price=target_row["보통주가"],
-        _force_refresh=force_refresh
+        force_refresh=force_refresh
     )
 
 if df_hist.empty:
