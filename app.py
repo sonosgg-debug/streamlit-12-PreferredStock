@@ -172,6 +172,51 @@ st.markdown("""
         box-shadow: 0 0 10px rgba(37, 99, 235, 0.4) !important;
     }
 
+    /* 다운로드 버튼 공통 통일 스타일 */
+    div[data-testid="stDownloadButton"] > button,
+    .stDownloadButton > button {
+        background-color: #334155 !important;
+        color: #f8fafc !important;
+        border: 1px solid #475569 !important;
+        border-radius: 6px !important;
+        font-size: 0.875rem !important;
+        font-weight: 500 !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        max-height: 38px !important;
+        line-height: 36px !important;
+        padding: 0 16px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        transition: all 0.2s ease-in-out !important;
+        box-sizing: border-box !important;
+    }
+    div[data-testid="stDownloadButton"] > button:hover,
+    .stDownloadButton > button:hover {
+        background-color: #475569 !important;
+        border-color: #38bdf8 !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.25) !important;
+    }
+    div[data-testid="stDownloadButton"] > button:active,
+    .stDownloadButton > button:active {
+        background-color: #1e293b !important;
+        border-color: #0284c7 !important;
+    }
+    div[data-testid="stDownloadButton"] > button p,
+    div[data-testid="stDownloadButton"] > button span,
+    .stDownloadButton > button p,
+    .stDownloadButton > button span {
+        font-size: 0.875rem !important;
+        font-weight: 500 !important;
+        color: inherit !important;
+        line-height: inherit !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
     /* Sidebar button horizontal 2-column layout styling (다른 앱과 통일) */
     section[data-testid="stSidebar"] div.stButton > button {
         border-radius: 6px !important;
@@ -553,7 +598,7 @@ with col_kpi4:
 # ==========================================
 # 10. 메인 영역: 조회 결과 데이터 영역
 # ==========================================
-col_title, col_dl = st.columns([8, 2])
+col_title, col_dl = st.columns([8, 2], vertical_alignment="bottom")
 with col_title:
     st.markdown("<div class='section-header'>📋 종목별 비교 데이터 테이블</div>", unsafe_allow_html=True)
 with col_dl:
