@@ -1,4 +1,4 @@
-# Python
+﻿# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -16,4 +16,6 @@ cache/
 !pref_stocks_master.csv
 
 # Streamlit
-.streamlit/
+# Streamlit secrets (config.toml은 다크 테마 적용을 위해 git에 포함)
+.streamlit/secrets.toml
+!.streamlit/config.toml
