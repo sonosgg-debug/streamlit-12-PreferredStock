@@ -434,10 +434,10 @@ if 'force_reload' not in st.session_state:
 with st.sidebar:
     st.markdown("<h2 style='color: #8AB4F8; font-size: 1.3rem; margin-top: 0;'>⚙️ 검색 및 필터</h2>", unsafe_allow_html=True)
     
-    # 1) 시장 선택 (디폴트: "전체")
+    # 1) 시장 선택 (디폴트: "코스피 (KOSPI)")
     market_choice = st.radio(
-        "시장 선택",
-        options=["전체", "코스피", "코스닥"],
+        "🏛️ 시장 선택",
+        options=["코스피 (KOSPI)", "코스닥 (KOSDAQ)", "전체 (ALL)"],
         index=0,
         horizontal=True,
         help="조회할 주식 시장을 선택합니다."
@@ -504,9 +504,9 @@ if df_raw.empty:
 
 # 시장 필터 적용
 df_filtered = df_raw.copy()
-if market_choice == "코스피":
+if "코스피" in market_choice:
     df_filtered = df_filtered[df_filtered["시장"] == "코스피"]
-elif market_choice == "코스닥":
+elif "코스닥" in market_choice:
     df_filtered = df_filtered[df_filtered["시장"] == "코스닥"]
 
 # 스마트 필터 적용
