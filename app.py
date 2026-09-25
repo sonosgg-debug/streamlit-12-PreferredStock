@@ -57,7 +57,6 @@ STANDARD_CHART_THEME = {
 # 1. 페이지 설정
 st.set_page_config(
     page_title="한국증시 우선주 목록 및 투자 지표 비교",
-    page_icon="🏛️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
