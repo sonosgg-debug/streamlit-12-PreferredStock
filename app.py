@@ -62,9 +62,9 @@ st.markdown("""
     }
     
     /* Sidebar Styling */
-    section[data-testid="stSidebar"] {
+    section[data-testid="stSidebar"], [data-testid="stSidebar"] {
         background-color: #1e293b !important;
-        border-right: 1px solid #334155;
+        border-right: 1px solid #334155 !important;
     }
     
     /* Headers (00 Bookmarks 테마 일치) */
@@ -78,6 +78,7 @@ st.markdown("""
     section[data-testid="stSidebar"] h2, 
     section[data-testid="stSidebar"] h3 {
         color: #f8fafc !important;
+        -webkit-text-fill-color: #f8fafc !important;
     }
 
     /* Input & Select Box styling */
@@ -432,7 +433,20 @@ if 'force_reload' not in st.session_state:
 # 6. 왼쪽 사이드 패널 (사이드바)
 # ==========================================
 with st.sidebar:
-    st.markdown("<h2 style='color: #8AB4F8; font-size: 1.3rem; margin-top: 0;'>⚙️ 검색 및 필터</h2>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div style='padding: 2px 0 12px 0;'>
+            <div style='font-size: 1.25rem; font-weight: 700; color: #f8fafc; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px;'>
+                <span>⚙️</span> 검색 및 필터
+            </div>
+            <div style='font-size: 0.82rem; color: #94a3b8; margin-top: 4px; line-height: 1.4;'>
+                시장 구분 및 배당률, 괴리율 등 스마트 필터를 설정합니다.
+            </div>
+        </div>
+        <hr style='border: 0; height: 1px; background-color: #334155; margin: 10px 0 16px 0;'>
+        """,
+        unsafe_allow_html=True
+    )
     
     # 1) 시장 선택 (디폴트: "코스피 (KOSPI)")
     market_choice = st.radio(
