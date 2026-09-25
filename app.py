@@ -172,11 +172,11 @@ st.markdown("""
 
     /* Section Subheaders */
     .section-header {
-        font-size: 1.25rem;
+        font-size: 1.20rem;
         font-weight: 700;
-        color: #e2e8f0;
-        margin-top: 10px;
-        margin-bottom: 12px;
+        color: #8AB4F8;
+        margin-top: 20px;
+        margin-bottom: 10px;
         display: flex;
         align-items: center;
         gap: 8px;
@@ -992,7 +992,7 @@ else:
         diff_vs_avg = current_disc - hist_avg
 
         with st.container(border=True):
-            st.markdown("<div style='font-size: 1.15rem; font-weight: 700; color: #8AB4F8; margin-bottom: 12px;'>💡 투자 매력도 & 핵심 체크포인트</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size: 1.00rem; font-weight: 600; color: #E2E8F0; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;'><span>💡</span> 투자 매력도 & 핵심 체크포인트</div>", unsafe_allow_html=True)
 
             # 1. 괴리율 진단
             st.markdown("**1. 괴리율(할인율) 진단:**")
