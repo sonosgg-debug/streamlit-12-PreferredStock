@@ -4,9 +4,6 @@ app.py
 보통주-우선주 매핑, 13개 필수 지표 산출, 엑셀 다운로드, 인터랙티브 상세 차트 제공.
 """
 
-import socket
-socket.setdefaulttimeout(5.0)
-
 import sys
 # Python 3.12+ 및 Streamlit Cloud(Python 3.14) 환경에서 pykrx의 pkg_resources 모듈 임포트 에러 방지용 shim
 try:
@@ -52,7 +49,6 @@ STANDARD_CHART_THEME = {
     'hover_bg': 'rgba(15, 23, 42, 0.9)',
     'hover_border': '#334155'
 }
-
 
 # 1. 페이지 설정
 FAVICON_PATH = os.path.join(os.path.dirname(__file__), "favicon.png")
@@ -350,12 +346,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
 # 3. 데이터 로딩 캐시 함수
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_cached_market_data(target_date_key: str, force_refresh: bool = False):
     return data_loader.load_market_data(force_refresh=force_refresh)
-
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_cached_price_history(pref_ticker, com_ticker, months=12, latest_date=None, latest_pref_price=None, latest_com_price=None, force_refresh: bool = False):
@@ -367,7 +361,6 @@ def get_cached_price_history(pref_ticker, com_ticker, months=12, latest_date=Non
         latest_pref_price=latest_pref_price,
         latest_com_price=latest_com_price
     )
-
 
 # 4. 엑셀 파일 생성 헬퍼 함수
 def create_excel_download(df_export):
@@ -445,7 +438,6 @@ def create_excel_download(df_export):
 
     return output.getvalue()
 
-
 # 5. 세션 상태 초기화
 if 'market_selection' not in st.session_state:
     st.session_state.market_selection = "전체"
@@ -453,7 +445,6 @@ if 'selected_stock_idx' not in st.session_state:
     st.session_state.selected_stock_idx = 0
 if 'force_reload' not in st.session_state:
     st.session_state.force_reload = False
-
 
 # ==========================================
 # 6. 왼쪽 사이드 패널 (사이드바)
@@ -517,7 +508,6 @@ with st.sidebar:
         st.session_state.show_refresh_toast = True
         st.rerun()
 
-
 # ==========================================
 # 7. 데이터 로드 및 필터링
 # ==========================================
@@ -573,7 +563,6 @@ if btn_search:
     else:
         st.toast("⚠️ 조건에 일치하는 종목이 없습니다. 검색 필터를 확인해 주세요.", icon="⚠️")
 
-
 # ==========================================
 # 8. 메인 영역: 타이틀 영역
 # ==========================================
@@ -600,7 +589,6 @@ st.markdown(
 
 # [가로 선 1]: 타이틀 영역과 데이터 영역 사이
 st.markdown("<hr style='border: 0; height: 1px; background-color: #334155; margin: 10px 0 20px 0;'>", unsafe_allow_html=True)
-
 
 # ==========================================
 # 9. 메인 영역: 핵심 요약 KPI 지표 카드
@@ -633,7 +621,6 @@ with col_kpi3:
 with col_kpi4:
     with st.container(border=True):
         st.metric("🏆 최대 괴리율 종목", top_discount_info)
-
 
 # ==========================================
 # 10. 메인 영역: 조회 결과 데이터 영역
@@ -729,12 +716,10 @@ if selection and selection.get("rows"):
     if sel_idx < len(df_filtered):
         selected_stock_name = df_filtered.iloc[sel_idx]["우선주명"]
 
-
 # ==========================================
 # 11. [가로 선 2]: 데이터 영역과 상세 영역 사이
 # ==========================================
 st.markdown("<hr style='border: 0; height: 1px; background-color: #334155; margin: 25px 0 25px 0;'>", unsafe_allow_html=True)
-
 
 # ==========================================
 # 12. 메인 영역: 종목별 상세 정보 영역

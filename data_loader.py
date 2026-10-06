@@ -5,9 +5,6 @@ data_loader.py
 Streamlit Cloud(해외 IP) 및 로컬 환경 모두에서 100% 동작하는 하이브리드 데이터 파이프라인.
 """
 
-import socket
-socket.setdefaulttimeout(15.0)
-
 import sys
 # Python 3.12+ 및 Streamlit Cloud(Python 3.14) 환경에서 pykrx의 pkg_resources 모듈 임포트 에러 방지용 shim
 try:
@@ -117,7 +114,6 @@ CACHE_DIR = os.path.join(CURRENT_DIR, "cache")
 os.makedirs(CACHE_DIR, exist_ok=True)
 MASTER_FILE = os.path.join(CURRENT_DIR, "pref_stocks_master.csv")
 
-
 def ensure_krx_session():
     """pykrx 세션이 유효한지 확인하고 필요한 경우 재로그인 수행"""
     init_krx_credentials()
@@ -134,8 +130,6 @@ def ensure_krx_session():
                     webio.set_auth_session(new_sess)
     except Exception as e:
         print(f"KRX 세션 갱신 시도 중 예외: {e}")
-
-
 
 import requests
 
@@ -256,7 +250,6 @@ def get_latest_business_day(target_date=None):
 
     return trading_days[-1] if trading_days else (now_kst - datetime.timedelta(days=1)).strftime('%Y%m%d')
 
-
 def is_preferred_stock(ticker, name, all_names):
     """
     우선주 여부 및 해당 보통주 티커 탐색
@@ -286,7 +279,6 @@ def is_preferred_stock(ticker, name, all_names):
 
     return False, None
 
-
 def load_fallback_master_data():
     """번들링된 마스터 캐시 파일에서 114개 우선주 데이터를 안전하게 로드"""
     if os.path.exists(MASTER_FILE):
@@ -297,7 +289,6 @@ def load_fallback_master_data():
         except Exception as e:
             print(f"마스터 데이터 로드 실패: {e}")
     return pd.DataFrame()
-
 
 def update_prices_with_naver(df, target_date=None):
     """
@@ -398,7 +389,6 @@ def update_prices_with_naver(df, target_date=None):
 
     return df, target_date
 
-
 def update_master_with_fdr(df_master, target_date=None):
     """
     FinanceDataReader를 활용하여 114개 우선주 및 보통주의 최신 종가를 멀티스레드 병렬로 수집하고
@@ -490,7 +480,6 @@ def update_master_with_fdr(df_master, target_date=None):
 
     return df_master, target_date
 
-
 def update_master_with_yfinance(df_master, target_date=None):
     """
     yfinance를 활용하여 114개 우선주 및 보통주의 최신 종가를 일괄 다운로드하고
@@ -573,7 +562,6 @@ def update_master_with_yfinance(df_master, target_date=None):
         print(f"yfinance 최신 종가 업데이트 중 예외 발생: {e}")
 
     return df_master, target_date
-
 
 def load_market_data(force_refresh=False):
     """
@@ -742,7 +730,6 @@ def load_market_data(force_refresh=False):
 
     return pd.DataFrame(), date, "데이터 없음"
 
-
 def load_price_history(pref_ticker, com_ticker, months=12, latest_date=None, latest_pref_price=None, latest_com_price=None):
     """
     특정 우선주와 보통주의 과거 N개월간 일별 종가 및 일별 괴리율 시계열 로드
@@ -861,7 +848,6 @@ def load_price_history(pref_ticker, com_ticker, months=12, latest_date=None, lat
             print(f"최신 종가 동기화 예외 무시: {ex_sync}")
 
     return _process_history_df(df)
-
 
 def _process_history_df(df):
     """시계열 데이터프레임의 괴리율, 이동평균 및 정규화 지표 계산"""
